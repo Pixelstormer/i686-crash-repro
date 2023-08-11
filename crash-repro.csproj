@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>crash_repro</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyName>crash_repro_managed</AssemblyName>
+    <NativeTargetTriple>i686-pc-windows-gnu</NativeTargetTriple>
+    <NativeAssemblyName>crash_repro_native</NativeAssemblyName>
+    <NativeAssemblyLocation>rust/target/$(NativeTargetTriple)/$(Configuration.ToLower())/$(NativeAssemblyName).dll</NativeAssemblyLocation>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <Target Name="BuildRust">
+    <Exec Command="cargo clippy -- -W clippy::all" WorkingDirectory="rust" />
+    <Exec Condition="'$(Configuration)'=='Debug'" Command="cargo build" WorkingDirectory="rust" />
+    <Exec Condition="'$(Configuration)'=='Release'" Command="cargo build --release" WorkingDirectory="rust" />
+  </Target>
+
+  <Target Name="BuildRustCross">
+    <Exec Command="cargo clippy -- -W clippy::all" WorkingDirectory="rust" />
+    <Exec Condition="'$(Configuration)'=='Debug'" Command="cross build --target $(NativeTargetTriple)" WorkingDirectory="rust" />
+    <Exec Condition="'$(Configuration)'=='Release'" Command="cross build --release --target $(NativeTargetTriple)" WorkingDirectory="rust" />
+  </Target>
+
+  <Target Name="CopyNativeAssembly" AfterTargets="Build" DependsOnTargets="BuildRustCross">
+    <Copy SourceFiles="$(NativeAssemblyLocation)" DestinationFolder="$(OutputPath)" />
+  </Target>
+
+  <Target Name="CleanOurStuff" AfterTargets="Clean">
+    <Exec Command="cargo clean" WorkingDirectory="rust" />
+  </Target>
+
+</Project>
